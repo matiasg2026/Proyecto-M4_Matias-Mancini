@@ -22,7 +22,9 @@ function Tasks() {
     const [editDescription, setEditDescription] = useState("");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [sendingSummary, setSendingSummary] = useState(false);
     const [error, setError] = useState("");
+    const [summaryMessage, setSummaryMessage] = useState("");
 
     const loadTasks = async () => {
         if (!user) return;
@@ -51,7 +53,7 @@ function Tasks() {
             user.uid,
             (updatedTasks) => {
                 setTasks(updatedTasks);
-                setError(null);
+                setError("");
                 setLoading(false);
             },
             () => {
@@ -150,6 +152,54 @@ function Tasks() {
         }
     };
 
+    const handleSendSummary = async () => {
+        if (!user?.email) {
+            setError("No se encontró el correo del usuario.");
+            return;
+        }
+
+        try {
+            setSendingSummary(true);
+            setError("");
+            setSummaryMessage("");
+
+            const response = await fetch("/api/send-email", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email: user.email,
+                    tasks: tasks.map((task) => ({
+                        title: task.title,
+                        description: task.description,
+                        completed: task.completed,
+                    })),
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.error || "No se pudo enviar el resumen."
+                );
+            }
+
+            setSummaryMessage(
+                "¡Tu resumen fue enviado correctamente!"
+            );
+        } catch (error) {
+            setError(
+                error instanceof Error
+                    ? error.message
+                    : "No se pudo enviar el resumen."
+            );
+        } finally {
+            setSendingSummary(false);
+        }
+    };
+
     const handleLogout = async () => {
         try {
             await logout();
@@ -178,10 +228,13 @@ function Tasks() {
 
                 <section className="welcome-section">
                     <div>
-                        <span className="section-eyebrow">TU ESPACIO DE TRABAJO</span>
+                        <span className="section-eyebrow">
+                            TU ESPACIO DE TRABAJO
+                        </span>
                         <h1>Mis tareas</h1>
                         <p>
-                            ¡Hola! {user?.email}. Organizá tus pendientes y avanzá a tu ritmo.
+                            ¡Hola! {user?.email}. Organizá tus pendientes y
+                            avanzá a tu ritmo.
                         </p>
                     </div>
 
@@ -196,34 +249,49 @@ function Tasks() {
                     </div>
                 )}
 
+                {summaryMessage && (
+                    <p role="status">{summaryMessage}</p>
+                )}
+
                 <section className="task-form-card">
                     <div className="card-heading">
                         <div>
-                            <span className="section-eyebrow">ORGANIZACIÓN</span>
+                            <span className="section-eyebrow">
+                                ORGANIZACIÓN
+                            </span>
                             <h2>Crear una tarea</h2>
                         </div>
                         <span className="card-icon">＋</span>
                     </div>
 
-                    <form className="task-form" onSubmit={handleCreateTask}>
+                    <form
+                        className="task-form"
+                        onSubmit={handleCreateTask}
+                    >
                         <div className="form-group">
                             <label htmlFor="task-title">Título</label>
                             <input
                                 id="task-title"
                                 type="text"
                                 value={title}
-                                onChange={(event) => setTitle(event.target.value)}
+                                onChange={(event) =>
+                                    setTitle(event.target.value)
+                                }
                                 placeholder="Ej. Preparar informe"
                                 required
                             />
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="task-description">Descripción</label>
+                            <label htmlFor="task-description">
+                                Descripción
+                            </label>
                             <textarea
                                 id="task-description"
                                 value={description}
-                                onChange={(event) => setDescription(event.target.value)}
+                                onChange={(event) =>
+                                    setDescription(event.target.value)
+                                }
                                 placeholder="Agregá algunos detalles sobre esta tarea..."
                                 rows={3}
                             />
@@ -242,13 +310,27 @@ function Tasks() {
                 <section className="task-list-section">
                     <div className="list-heading">
                         <div>
-                            <span className="section-eyebrow">SEGUIMIENTO</span>
+                            <span className="section-eyebrow">
+                                SEGUIMIENTO
+                            </span>
                             <h2>Mis pendientes</h2>
                         </div>
 
                         <span className="task-counter">
-                            {tasks.length} {tasks.length === 1 ? "tarea" : "tareas"}
+                            {tasks.length}{" "}
+                            {tasks.length === 1 ? "tarea" : "tareas"}
                         </span>
+
+                        <button
+                            className="button button-primary"
+                            type="button"
+                            onClick={handleSendSummary}
+                            disabled={sendingSummary || loading}
+                        >
+                            {sendingSummary
+                                ? "Enviando..."
+                                : "✉ Enviar mi resumen"}
+                        </button>
                     </div>
 
                     {loading ? (
@@ -260,22 +342,31 @@ function Tasks() {
                             <span className="empty-icon">✦</span>
                             <h3>¡Todo listo para empezar!</h3>
                             <p>
-                                Todavía no tenés tareas. Agregá la primera y organizá tu día.
+                                Todavía no tenés tareas. Agregá la primera y
+                                organizá tu día.
                             </p>
                         </div>
                     ) : (
                         <div className="task-list">
                             {tasks.map((task) => (
                                 <article
-                                    className={`task-card ${task.completed ? "task-completed" : ""}`}
+                                    className={`task-card ${task.completed
+                                            ? "task-completed"
+                                            : ""
+                                        }`}
                                     key={task.id}
                                 >
                                     {editingTaskId === task.id ? (
-                                        <form className="edit-form" onSubmit={handleSaveEdit}>
+                                        <form
+                                            className="edit-form"
+                                            onSubmit={handleSaveEdit}
+                                        >
                                             <h3>Editar tarea</h3>
 
                                             <div className="form-group">
-                                                <label htmlFor={`edit-title-${task.id}`}>
+                                                <label
+                                                    htmlFor={`edit-title-${task.id}`}
+                                                >
                                                     Título
                                                 </label>
                                                 <input
@@ -283,21 +374,27 @@ function Tasks() {
                                                     type="text"
                                                     value={editTitle}
                                                     onChange={(event) =>
-                                                        setEditTitle(event.target.value)
+                                                        setEditTitle(
+                                                            event.target.value
+                                                        )
                                                     }
                                                     required
                                                 />
                                             </div>
 
                                             <div className="form-group">
-                                                <label htmlFor={`edit-description-${task.id}`}>
+                                                <label
+                                                    htmlFor={`edit-description-${task.id}`}
+                                                >
                                                     Descripción
                                                 </label>
                                                 <textarea
                                                     id={`edit-description-${task.id}`}
                                                     value={editDescription}
                                                     onChange={(event) =>
-                                                        setEditDescription(event.target.value)
+                                                        setEditDescription(
+                                                            event.target.value
+                                                        )
                                                     }
                                                     rows={3}
                                                 />
@@ -309,7 +406,9 @@ function Tasks() {
                                                     type="submit"
                                                     disabled={saving}
                                                 >
-                                                    {saving ? "Guardando..." : "Guardar cambios"}
+                                                    {saving
+                                                        ? "Guardando..."
+                                                        : "Guardar cambios"}
                                                 </button>
 
                                                 <button
@@ -328,15 +427,20 @@ function Tasks() {
                                                 <div className="task-title-row">
                                                     <h3>{task.title}</h3>
                                                     <span
-                                                        className={`task-status ${task.completed ? "status-completed" : "status-pending"
+                                                        className={`task-status ${task.completed
+                                                                ? "status-completed"
+                                                                : "status-pending"
                                                             }`}
                                                     >
-                                                        {task.completed ? "Completada" : "Pendiente"}
+                                                        {task.completed
+                                                            ? "Completada"
+                                                            : "Pendiente"}
                                                     </span>
                                                 </div>
 
                                                 <p className="task-description">
-                                                    {task.description || "Sin descripción."}
+                                                    {task.description ||
+                                                        "Sin descripción."}
                                                 </p>
                                             </div>
 
@@ -344,7 +448,11 @@ function Tasks() {
                                                 <button
                                                     className="button button-soft"
                                                     type="button"
-                                                    onClick={() => handleToggleCompleted(task)}
+                                                    onClick={() =>
+                                                        handleToggleCompleted(
+                                                            task
+                                                        )
+                                                    }
                                                 >
                                                     {task.completed
                                                         ? "Marcar pendiente"
@@ -354,7 +462,9 @@ function Tasks() {
                                                 <button
                                                     className="button button-outline"
                                                     type="button"
-                                                    onClick={() => handleEditClick(task)}
+                                                    onClick={() =>
+                                                        handleEditClick(task)
+                                                    }
                                                 >
                                                     Editar
                                                 </button>
@@ -362,7 +472,11 @@ function Tasks() {
                                                 <button
                                                     className="button button-danger"
                                                     type="button"
-                                                    onClick={() => handleDeleteTask(task.id)}
+                                                    onClick={() =>
+                                                        handleDeleteTask(
+                                                            task.id
+                                                        )
+                                                    }
                                                 >
                                                     Eliminar
                                                 </button>
