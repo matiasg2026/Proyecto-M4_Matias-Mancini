@@ -49,7 +49,15 @@
 A continuación se presenta el recorrido audiovisual completo de la aplicación, mostrando el flujo de registro, inicio de sesión, creación, edición, alternancia de estados y eliminación de tareas en tiempo real, junto con el despacho del resumen por correo:
 
 > [!TIP]
-> 📺 **[Haz clic aquí para reproducir el video en el visor de GitHub (demo.mp4)](./src/assets/demo.mp4)**  
+> 📺 **<p align="center">
+  <video src="[https://github.com/user-attachments/assets/4e16e5f5-5592-4733-a56e-61a033a16289]
+)" controls autoplay loop muted playsinline width="100%">
+  </video>
+</p>
+
+https://github.com/user-attachments/assets/4e16e5f5-5592-4733-a56e-61a033a16289
+
+**  
 > *(Al hacer clic en el enlace, GitHub abrirá su reproductor de video nativo con controles de pausa, volumen y pantalla completa).*
 
 <p align="center">
